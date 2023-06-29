@@ -17,29 +17,40 @@ function App() {
   const [results, setResults] = useState([]);
   const [hasQueried, setHasQueried] = useState(false);
   const [tokenDataObjects, setTokenDataObjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMessages, setErrorMessages] = useState("");
+
 
   async function getTokenBalance() {
+    setLoading(true);
     const config = {
-      apiKey: '<-- COPY-PASTE YOUR ALCHEMY API KEY HERE -->',
+      apiKey: 'ey9g2UNTQ4_iE1AH6UkHen8nPmo-bXq6',
       network: Network.ETH_MAINNET,
     };
 
     const alchemy = new Alchemy(config);
-    const data = await alchemy.core.getTokenBalances(userAddress);
+    try {
+      const data = await alchemy.core.getTokenBalances(userAddress);
+      setResults(data);
 
-    setResults(data);
+      const tokenDataPromises = [];
 
-    const tokenDataPromises = [];
-
-    for (let i = 0; i < data.tokenBalances.length; i++) {
-      const tokenData = alchemy.core.getTokenMetadata(
-        data.tokenBalances[i].contractAddress
-      );
-      tokenDataPromises.push(tokenData);
+      for (let i = 0; i < data.tokenBalances.length; i++) {
+        const tokenData = alchemy.core.getTokenMetadata(
+          data.tokenBalances[i].contractAddress
+        );
+        tokenDataPromises.push(tokenData);
+      }
+      setTokenDataObjects(await Promise.all(tokenDataPromises));
+      
+      setHasQueried(true);
+      setLoading(false);
     }
-
-    setTokenDataObjects(await Promise.all(tokenDataPromises));
-    setHasQueried(true);
+    catch (e) {
+      setLoading(false);
+      setErrorMessages(e.message);
+      return;
+    }
   }
   return (
     <Box w="100vw">
@@ -76,15 +87,24 @@ function App() {
           bgColor="white"
           fontSize={24}
         />
-        <Button fontSize={20} onClick={getTokenBalance} mt={36} bgColor="blue">
+        {!loading? (<Button fontSize={20} onClick={getTokenBalance} mt={36} bgColor="blue">
           Check ERC-20 Token Balances
+        </Button>): (
+          <Button fontSize={20} mt={36} bgColor="grey">
+          Loading...
         </Button>
+        )}
 
         <Heading my={36}>ERC-20 token balances:</Heading>
 
         {hasQueried ? (
           <SimpleGrid w={'90vw'} columns={4} spacing={24}>
             {results.tokenBalances.map((e, i) => {
+                const nominalBalance = Utils.formatUnits(
+                  e.tokenBalance,
+                  tokenDataObjects[i].decimals
+                );
+                const balanceValue = nominalBalance.length > 8 ? nominalBalance.slice(0, 8) + "..." : nominalBalance;              
               return (
                 <Flex
                   flexDir={'column'}
@@ -98,10 +118,7 @@ function App() {
                   </Box>
                   <Box>
                     <b>Balance:</b>&nbsp;
-                    {Utils.formatUnits(
-                      e.tokenBalance,
-                      tokenDataObjects[i].decimals
-                    )}
+                    {balanceValue}
                   </Box>
                   <Image src={tokenDataObjects[i].logo} />
                 </Flex>
@@ -110,6 +127,9 @@ function App() {
           </SimpleGrid>
         ) : (
           'Please make a query! This may take a few seconds...'
+        )}
+        {errorMessages.length > 0 && (
+          <Text color="red">{errorMessages}</Text>
         )}
       </Flex>
     </Box>
