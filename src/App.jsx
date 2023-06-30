@@ -10,7 +10,8 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { connectWallet } from './interact';
 
 function App() {
   const [userAddress, setUserAddress] = useState('');
@@ -19,6 +20,15 @@ function App() {
   const [tokenDataObjects, setTokenDataObjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMessages, setErrorMessages] = useState("");
+
+  useEffect(() => {
+    connectWalletPressed();
+  }, []);
+
+  async function connectWalletPressed() {
+    const {address, status} = await connectWallet();
+    setUserAddress(address);
+  }
 
 
   async function getTokenBalance() {
@@ -54,6 +64,9 @@ function App() {
   }
   return (
     <Box w="100vw">
+      <Heading textAlign="right" mt={36} mb={36} fontSize={12}>
+        {userAddress? `Connected to ${userAddress}`: "Not connected"}
+      </Heading>
       <Center>
         <Flex
           alignItems={'center'}
