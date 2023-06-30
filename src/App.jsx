@@ -11,9 +11,10 @@ import {
 } from '@chakra-ui/react';
 import { Alchemy, Network, Utils } from 'alchemy-sdk';
 import { useState, useEffect } from 'react';
-import { connectWallet } from './interact';
+import { connectWallet, getCurrentWalletConnected } from './interact';
 
 function App() {
+  const [userWallet, setUserWallet] = useState({}); 
   const [userAddress, setUserAddress] = useState('');
   const [results, setResults] = useState([]);
   const [hasQueried, setHasQueried] = useState(false);
@@ -22,12 +23,17 @@ function App() {
   const [errorMessages, setErrorMessages] = useState("");
 
   useEffect(() => {
-    connectWalletPressed();
+    fetchWalletConnected();
   }, []);
 
   async function connectWalletPressed() {
-    const {address, status} = await connectWallet();
-    setUserAddress(address);
+    const wallet = await connectWallet();
+    setUserWallet(wallet);
+  }
+
+  async function fetchWalletConnected() {
+    const walletIsConnected = await getCurrentWalletConnected();
+    setUserWallet(walletIsConnected);
   }
 
 
@@ -64,8 +70,8 @@ function App() {
   }
   return (
     <Box w="100vw">
-      <Heading textAlign="right" mt={36} mb={36} fontSize={12}>
-        {userAddress? `Connected to ${userAddress}`: "Not connected"}
+      <Heading textAlign="right" mt={36} mb={36} fontSize={12} >
+        {userWallet?.address? `Connected to: ${userWallet.address}`: "Not connected"}
       </Heading>
       <Center>
         <Flex
